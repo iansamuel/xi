@@ -50,13 +50,23 @@ struct ContentView: View {
         withAnimation {
             let newHabit = Habit(name: name, habitDescription: "")
             modelContext.insert(newHabit)
+            
+            // Schedule notification for the new habit
+            Task {
+                await NotificationManager.shared.checkPermissionStatus()
+                if NotificationManager.shared.hasPermission {
+                    NotificationManager.shared.scheduleHabitNotification(for: newHabit)
+                }
+            }
         }
     }
 
     private func deleteHabits(offsets: IndexSet) {
         withAnimation {
             for index in offsets {
-                modelContext.delete(habits[index])
+                let habit = habits[index]
+                NotificationManager.shared.cancelNotification(for: habit)
+                modelContext.delete(habit)
             }
         }
     }
@@ -117,6 +127,11 @@ struct HabitDetailView: View {
                 Text("Successful: \(habit.successfulAttempts)")
                 Text("Current Interval: \(formatInterval(habit.currentInterval))")
                 Text("Next Check-in: \(habit.nextNotificationDate, style: .relative)")
+                
+                Button("Test Notification") {
+                    NotificationManager.shared.scheduleHabitNotification(for: habit)
+                }
+                .buttonStyle(.bordered)
             }
             .font(.body)
             

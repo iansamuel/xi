@@ -11,7 +11,7 @@ import SwiftData
 @Model
 final class Habit {
     var name: String
-    var description: String
+    var habitDescription: String
     var createdAt: Date
     var currentInterval: TimeInterval // Current interval between notifications (in seconds)
     var nextNotificationDate: Date
@@ -25,9 +25,9 @@ final class Habit {
     var minimumInterval: TimeInterval // Minimum time between notifications
     var maximumInterval: TimeInterval // Maximum time between notifications
     
-    init(name: String, description: String = "") {
+    init(name: String, habitDescription: String = "") {
         self.name = name
-        self.description = description
+        self.habitDescription = habitDescription
         self.createdAt = Date()
         self.currentInterval = 3600 // Start with 1 hour
         self.nextNotificationDate = Date().addingTimeInterval(3600)

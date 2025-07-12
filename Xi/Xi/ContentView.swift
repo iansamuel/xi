@@ -42,7 +42,7 @@ struct ContentView: View {
 
     private func addHabit() {
         withAnimation {
-            let newHabit = Habit(name: "New Habit", description: "")
+            let newHabit = Habit(name: "New Habit", habitDescription: "")
             modelContext.insert(newHabit)
         }
     }
@@ -82,8 +82,8 @@ struct HabitDetailView: View {
                 .font(.largeTitle)
                 .bold()
             
-            if !habit.description.isEmpty {
-                Text(habit.description)
+            if !habit.habitDescription.isEmpty {
+                Text(habit.habitDescription)
                     .font(.body)
                     .foregroundColor(.secondary)
             }

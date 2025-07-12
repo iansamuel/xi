@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an iOS app built with SwiftUI and SwiftData. The project is a simple data management app that demonstrates basic CRUD operations with SwiftData models. It includes remote notification capabilities and uses the new Swift Testing framework.
+Xi is a habit tracking app that uses spaced repetition to help users build habits. Users create habits, and Xi sends local notifications asking "did you do this habit?". Based on success/failure responses, Xi adjusts the notification intervals using spaced repetition algorithms - lengthening intervals on success, shortening on failure.
+
+The app is built with SwiftUI, SwiftData for persistence, and UserNotifications for local notifications (no cloud setup required).
 
 ## Common Commands
 
@@ -75,3 +77,35 @@ Xi/
 - Import @testable import Xi for internal access
 - Place tests in XiTests/ and XiUITests/ targets
 - Test data operations by mocking ModelContainer with inMemory: true
+
+## Current Implementation Status
+
+### ✅ Completed Features
+1. **Habit Data Model (Habit.swift)**
+   - SwiftData model with spaced repetition fields
+   - Properties: name, habitDescription, intervals, success tracking
+   - Computed properties for success rate and streaks
+
+2. **Habit Management UI (ContentView.swift)**
+   - AddHabitView for creating habits with name input
+   - HabitRowView showing success rate and next check-in
+   - HabitDetailView with editable names and statistics
+   - Add/edit/delete functionality
+
+3. **Local Notification System (NotificationManager.swift)**
+   - Permission handling and setup
+   - Interactive notifications with Yes/No/Later actions
+   - Test notifications (5-second delay for debugging)
+   - Notification scheduling and cancellation
+
+### 🚧 Next Steps (In Progress)
+1. **Build Issues** - Some compilation errors need to be resolved
+2. **Spaced Repetition Algorithm** - Core logic to adjust intervals based on responses
+3. **Notification Response Handling** - Process Yes/No/Later actions to update habits
+4. **Notification Scheduling Integration** - Connect spaced repetition with notification timing
+
+### 🔧 Testing & Debugging
+- Use "Test Notification (5s)" button in habit detail view
+- Check Xcode console for notification scheduling logs
+- "Check Pending" button shows scheduled notifications
+- Background app to see notifications in simulator

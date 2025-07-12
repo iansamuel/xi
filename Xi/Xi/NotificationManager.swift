@@ -63,6 +63,44 @@ class NotificationManager: ObservableObject {
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
                 print("Error scheduling notification: \(error)")
+            } else {
+                print("✅ Scheduled notification for \(habit.name) at \(habit.nextNotificationDate)")
+            }
+        }
+    }
+    
+    func scheduleTestNotification(for habit: Habit, delay: TimeInterval) {
+        guard hasPermission else { 
+            print("❌ No notification permission")
+            return 
+        }
+        
+        // Remove any existing notification for this habit
+        cancelNotification(for: habit)
+        
+        let content = UNMutableNotificationContent()
+        content.title = "Xi Habit Check (TEST)"
+        content.body = "Did you do your habit: \(habit.name)? This is a test notification."
+        content.sound = .default
+        content.categoryIdentifier = "HABIT_CHECK"
+        content.userInfo = [
+            "habitId": habit.persistentModelID.uriRepresentation().absoluteString,
+            "habitName": habit.name,
+            "isTest": true
+        ]
+        
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: delay, repeats: false)
+        let request = UNNotificationRequest(
+            identifier: "test_habit_\(habit.persistentModelID.uriRepresentation().absoluteString)",
+            content: content,
+            trigger: trigger
+        )
+        
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("❌ Error scheduling test notification: \(error)")
+            } else {
+                print("✅ Scheduled TEST notification for \(habit.name) in \(delay) seconds")
             }
         }
     }
@@ -103,5 +141,16 @@ class NotificationManager: ObservableObject {
         )
         
         UNUserNotificationCenter.current().setNotificationCategories([category])
+    }
+    
+    func printPendingNotifications() {
+        UNUserNotificationCenter.current().getPendingNotificationRequests { requests in
+            print("📱 Pending notifications: \(requests.count)")
+            for request in requests {
+                if let trigger = request.trigger as? UNTimeIntervalNotificationTrigger {
+                    print("  - \(request.identifier): \(request.content.title) in \(trigger.timeInterval)s")
+                }
+            }
+        }
     }
 }

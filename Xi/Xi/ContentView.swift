@@ -128,8 +128,18 @@ struct HabitDetailView: View {
                 Text("Current Interval: \(formatInterval(habit.currentInterval))")
                 Text("Next Check-in: \(habit.nextNotificationDate, style: .relative)")
                 
-                Button("Test Notification") {
+                Button("Test Notification (5s)") {
+                    NotificationManager.shared.scheduleTestNotification(for: habit, delay: 5)
+                }
+                .buttonStyle(.bordered)
+                
+                Button("Schedule Normal") {
                     NotificationManager.shared.scheduleHabitNotification(for: habit)
+                }
+                .buttonStyle(.bordered)
+                
+                Button("Check Pending") {
+                    NotificationManager.shared.printPendingNotifications()
                 }
                 .buttonStyle(.bordered)
             }

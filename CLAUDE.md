@@ -36,47 +36,55 @@ Note: Xcode is required for building. If only Command Line Tools are installed, 
 ```
 Xi/
 ├── Xi/
-│   ├── XiApp.swift           # App entry point with SwiftData container
-│   ├── ContentView.swift     # Main UI with NavigationSplitView
-│   ├── Item.swift           # SwiftData model
-│   ├── Assets.xcassets/     # App icons and assets
-│   ├── Info.plist          # Remote notification configuration
-│   └── Xi.entitlements     # App entitlements
-├── XiTests/                 # Unit tests using Swift Testing
-└── XiUITests/              # UI tests
+│   ├── XiApp.swift              # App entry point with SwiftData container and notification delegate
+│   ├── ContentView.swift        # Main UI with habit list, detail, and add views
+│   ├── Habit.swift             # SwiftData model for habits with spaced repetition
+│   ├── NotificationManager.swift # Local notification scheduling and management
+│   ├── Assets.xcassets/        # App icons and assets
+│   ├── Info.plist             # Background modes configuration
+│   └── Xi.entitlements        # App sandbox and CloudKit entitlements
+├── XiTests/                    # Unit tests using Swift Testing framework
+└── XiUITests/                  # UI tests using XCTest framework
 ```
 
 ### Key Technologies
-- **SwiftUI**: For declarative UI with NavigationSplitView
-- **SwiftData**: For data persistence and modeling (@Model, @Query)
-- **Swift Testing**: New testing framework (not XCTest)
-- **Remote Notifications**: Configured in Info.plist
+- **SwiftUI**: Declarative UI with NavigationSplitView, sheets, and forms
+- **SwiftData**: Data persistence with @Model, @Query, and ModelContainer
+- **UserNotifications**: Local notifications with interactive actions
+- **Swift Testing**: Modern testing framework (unit tests)
+- **XCTest**: Traditional testing framework (UI tests)
 
-### Data Flow
-- SwiftData ModelContainer is configured in XiApp.swift with the Item schema
-- ContentView uses @Query to reactively display items from the data store
-- @Environment(\.modelContext) provides access to data operations
-- Items are simple timestamp-based entities demonstrating basic CRUD
+### Data Flow and Architecture
+- **ModelContainer**: Configured in XiApp.swift with Habit schema, handles persistence
+- **Habit Model**: Core entity with spaced repetition properties (intervals, success tracking)
+- **ContentView**: Main interface using @Query for reactive habit display
+- **NotificationManager**: Singleton managing notification scheduling, permissions, and responses
+- **Notification Delegate**: Handles interactive notification responses in XiApp.swift
 
 ### Code Organization
-- Keep SwiftData models simple and focused (like Item.swift)
-- Use @Query for reactive data fetching in views
-- Leverage SwiftUI's @Environment for dependency injection
-- Follow SwiftData patterns for model relationships when scaling
+- **Habit.swift**: SwiftData model with spaced repetition algorithms and computed properties
+- **ContentView.swift**: Contains multiple view components (HabitRowView, HabitDetailView, AddHabitView)
+- **NotificationManager.swift**: Centralized notification handling with @MainActor for UI updates
+- **XiApp.swift**: App entry point with ModelContainer setup and notification delegate
 
 ## Development Guidelines
 
-### SwiftData Best Practices
-- Use @Model macro for data models
-- Configure ModelContainer in the app entry point
-- Use @Query for reactive data access in views
-- Access modelContext through @Environment for data operations
+### SwiftData Integration
+- Habit model uses @Model with persistent relationships and computed properties
+- ModelContainer configured with Habit schema in app entry point
+- Use @Query for reactive habit list updates in ContentView
+- Access modelContext through @Environment for CRUD operations
 
-### Testing
-- Use Swift Testing framework with @Test macro
-- Import @testable import Xi for internal access
-- Place tests in XiTests/ and XiUITests/ targets
-- Test data operations by mocking ModelContainer with inMemory: true
+### Notification System
+- NotificationManager is a @MainActor singleton for thread safety
+- Interactive notifications with YES/NO/LATER actions defined in setupNotificationCategories()
+- Notification responses handled in NotificationDelegate within XiApp.swift
+- Use persistent model IDs for notification-to-habit mapping
+
+### Testing Frameworks
+- **Unit Tests (XiTests/)**: Use Swift Testing with @Test macro and #expect() assertions
+- **UI Tests (XiUITests/)**: Use XCTest with XCUIApplication for interface testing
+- Test data operations with ModelContainer(inMemory: true) for isolation
 
 ## Current Implementation Status
 
@@ -99,13 +107,25 @@ Xi/
    - Notification scheduling and cancellation
 
 ### 🚧 Next Steps (In Progress)
-1. **Build Issues** - Some compilation errors need to be resolved
-2. **Spaced Repetition Algorithm** - Core logic to adjust intervals based on responses
-3. **Notification Response Handling** - Process Yes/No/Later actions to update habits
-4. **Notification Scheduling Integration** - Connect spaced repetition with notification timing
+1. **Spaced Repetition Algorithm** - Core logic to adjust intervals based on responses (XiApp.swift:20-31)
+2. **Notification Response Handling** - Process Yes/No/Later actions to update habits and reschedule
+3. **Notification Scheduling Integration** - Connect spaced repetition calculations with NotificationManager
+4. **Build Issues** - Resolve any compilation errors that may arise during development
 
 ### 🔧 Testing & Debugging
-- Use "Test Notification (5s)" button in habit detail view
-- Check Xcode console for notification scheduling logs
-- "Check Pending" button shows scheduled notifications
-- Background app to see notifications in simulator
+- Use "Test Notification (5s)" button in HabitDetailView for immediate testing
+- "Check Pending" button shows all scheduled notifications in console
+- "Schedule Normal" button schedules notification based on habit's nextNotificationDate
+- Background the app to see notifications in iOS Simulator
+- Check Xcode console for detailed notification scheduling logs with ✅/❌ indicators
+
+### 🏗️ Implementation Notes
+- **NotificationDelegate** in XiApp.swift has TODO comments for spaced repetition integration
+- **Habit model** includes all necessary properties for spaced repetition (easeFactor, intervals)
+- **Interactive notifications** are fully configured with three action buttons
+- **Permission handling** is implemented with proper async/await patterns
+
+## Development Workflow
+
+### Code Update Guidelines
+- Whenever you update the code in this project, you should automatically rebuild and relaunch it using the appropriate MCP.

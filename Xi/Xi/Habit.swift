@@ -53,4 +53,35 @@ final class Habit {
         // For now, return a simple calculation
         return successfulAttempts
     }
+    
+    // MARK: - Spaced Repetition Methods
+    
+    func recordSuccess() {
+        totalAttempts += 1
+        successfulAttempts += 1
+        lastCheckedAt = Date()
+        
+        // Increase interval on success (spaced repetition)
+        currentInterval = min(currentInterval * easeFactor, maximumInterval)
+        scheduleNextNotification()
+    }
+    
+    func recordFailure() {
+        totalAttempts += 1
+        lastCheckedAt = Date()
+        
+        // Decrease interval on failure (more frequent reminders)
+        currentInterval = max(currentInterval / 2.0, minimumInterval)
+        scheduleNextNotification()
+    }
+    
+    func recordLater() {
+        // Don't count as attempt, just reschedule sooner
+        currentInterval = max(currentInterval / 3.0, minimumInterval)
+        scheduleNextNotification()
+    }
+    
+    private func scheduleNextNotification() {
+        nextNotificationDate = Date().addingTimeInterval(currentInterval)
+    }
 }

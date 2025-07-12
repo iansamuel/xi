@@ -45,7 +45,7 @@ class NotificationManager: ObservableObject {
         content.sound = .default
         content.categoryIdentifier = "HABIT_CHECK"
         content.userInfo = [
-            "habitId": habit.persistentModelID.uriRepresentation().absoluteString,
+            "habitId": habit.persistentModelID.hashValue,
             "habitName": habit.name
         ]
         
@@ -55,7 +55,7 @@ class NotificationManager: ObservableObject {
         
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: timeInterval, repeats: false)
         let request = UNNotificationRequest(
-            identifier: "habit_\(habit.persistentModelID.uriRepresentation().absoluteString)",
+            identifier: "habit_\(habit.persistentModelID.hashValue)",
             content: content,
             trigger: trigger
         )
@@ -84,14 +84,14 @@ class NotificationManager: ObservableObject {
         content.sound = .default
         content.categoryIdentifier = "HABIT_CHECK"
         content.userInfo = [
-            "habitId": habit.persistentModelID.uriRepresentation().absoluteString,
+            "habitId": habit.persistentModelID.hashValue,
             "habitName": habit.name,
             "isTest": true
         ]
         
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: delay, repeats: false)
         let request = UNNotificationRequest(
-            identifier: "test_habit_\(habit.persistentModelID.uriRepresentation().absoluteString)",
+            identifier: "test_habit_\(habit.persistentModelID.hashValue)",
             content: content,
             trigger: trigger
         )
@@ -106,7 +106,7 @@ class NotificationManager: ObservableObject {
     }
     
     func cancelNotification(for habit: Habit) {
-        let identifier = "habit_\(habit.persistentModelID.uriRepresentation().absoluteString)"
+        let identifier = "habit_\(habit.persistentModelID.hashValue)"
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier])
     }
     
@@ -123,13 +123,13 @@ class NotificationManager: ObservableObject {
         
         let noAction = UNNotificationAction(
             identifier: "NO_ACTION",
-            title: "No, I didn't",
+            title: "No, I forgot",
             options: []
         )
         
         let laterAction = UNNotificationAction(
             identifier: "LATER_ACTION",
-            title: "Ask me later",
+            title: "Haven't had a chance yet",
             options: []
         )
         

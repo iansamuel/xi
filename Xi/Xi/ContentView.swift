@@ -12,6 +12,7 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var habits: [Habit]
     @State private var showingAddHabit = false
+    @State private var showingSettings = false
 
     var body: some View {
         NavigationSplitView {
@@ -26,6 +27,11 @@ struct ContentView: View {
                 .onDelete(perform: deleteHabits)
             }
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: { showingSettings = true }) {
+                        Label("Settings", systemImage: "gear")
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     EditButton()
                 }
@@ -40,6 +46,9 @@ struct ContentView: View {
                 AddHabitView { habitName in
                     addHabit(name: habitName)
                 }
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView(habits: habits)
             }
         } detail: {
             Text("Select a habit")
@@ -127,21 +136,6 @@ struct HabitDetailView: View {
                 Text("Successful: \(habit.successfulAttempts)")
                 Text("Current Interval: \(formatInterval(habit.currentInterval))")
                 Text("Next Check-in: \(habit.nextNotificationDate, style: .relative)")
-                
-                Button("Test Notification (5s)") {
-                    NotificationManager.shared.scheduleTestNotification(for: habit, delay: 5)
-                }
-                .buttonStyle(.bordered)
-                
-                Button("Schedule Normal") {
-                    NotificationManager.shared.scheduleHabitNotification(for: habit)
-                }
-                .buttonStyle(.bordered)
-                
-                Button("Check Pending") {
-                    NotificationManager.shared.printPendingNotifications()
-                }
-                .buttonStyle(.bordered)
             }
             .font(.body)
             
@@ -206,6 +200,60 @@ struct AddHabitView: View {
                         }
                     }
                     .disabled(habitName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+        }
+    }
+}
+
+struct SettingsView: View {
+    @Environment(\.dismiss) private var dismiss
+    let habits: [Habit]
+    
+    var body: some View {
+        NavigationView {
+            List {
+                Section("Notification Testing") {
+                    ForEach(habits) { habit in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(habit.name)
+                                .font(.headline)
+                            
+                            HStack {
+                                Button("Test (5s)") {
+                                    NotificationManager.shared.scheduleTestNotification(for: habit, delay: 5)
+                                }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                                
+                                Button("Schedule") {
+                                    NotificationManager.shared.scheduleHabitNotification(for: habit)
+                                }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    
+                    Button("Check Pending Notifications") {
+                        NotificationManager.shared.printPendingNotifications()
+                    }
+                    .buttonStyle(.bordered)
+                }
+                
+                Section("Debug Info") {
+                    Text("Total Habits: \(habits.count)")
+                    Text("Active Habits: \(habits.filter { $0.isActive }.count)")
+                }
+            }
+            .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
                 }
             }
         }

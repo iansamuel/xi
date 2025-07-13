@@ -97,7 +97,21 @@ struct XiApp: App {
         do {
             sharedModelContainer = try ModelContainer(for: schema, configurations: [modelConfiguration])
         } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+            // If schema migration fails, try to recreate with a new configuration
+            print("⚠️ ModelContainer creation failed, attempting to recreate: \(error)")
+            do {
+                // Force recreate the container - this will clear existing data but fix schema issues
+                let url = URL.applicationSupportDirectory.appending(path: "default.store")
+                if FileManager.default.fileExists(atPath: url.path) {
+                    try FileManager.default.removeItem(at: url)
+                    print("🗑️ Removed old database file for schema migration")
+                }
+                
+                sharedModelContainer = try ModelContainer(for: schema, configurations: [modelConfiguration])
+                print("✅ Successfully recreated ModelContainer")
+            } catch {
+                fatalError("Could not create ModelContainer even after cleanup: \(error)")
+            }
         }
         
         // Inject the model container into the notification delegate

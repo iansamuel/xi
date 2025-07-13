@@ -19,6 +19,7 @@ final class Habit {
     var successfulAttempts: Int
     var lastCheckedAt: Date?
     var isActive: Bool
+    var selectedIcon: String // Store the selected icon (emoji or symbol name)
     
     // Spaced repetition parameters
     var easeFactor: Double // How much to multiply interval on success
@@ -35,6 +36,7 @@ final class Habit {
         self.successfulAttempts = 0
         self.lastCheckedAt = nil
         self.isActive = true
+        self.selectedIcon = "⭐" // Default star emoji
         
         // Default spaced repetition settings
         self.easeFactor = 1.5 // Increase interval by 50% on success

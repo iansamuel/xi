@@ -465,27 +465,6 @@ struct AddHabitView: View {
                     .padding(.top, 20)
                     .padding(.bottom, 10)
                     
-                    // Frequency Field
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "calendar.badge.plus")
-                                .foregroundColor(Color(red: 0.18, green: 0.129, blue: 0.078).opacity(0.62))
-                                .font(.system(size: 18))
-                            
-                            Text("Frequency")
-                                .font(.custom("Plus Jakarta Sans", size: 17))
-                                .foregroundColor(Color(red: 0.18, green: 0.129, blue: 0.078).opacity(0.62))
-                            
-                            Spacer()
-                        }
-                        .padding(.horizontal, 13)
-                        .padding(.vertical, 13.5)
-                        .background(Color(red: 0.447, green: 0.322, blue: 0.192).opacity(0.09))
-                        .cornerRadius(20)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 10)
-                    
                     // Frequency Chips
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {

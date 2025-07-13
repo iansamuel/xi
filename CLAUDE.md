@@ -128,5 +128,72 @@ Xi/
 
 ## Development Workflow
 
+### Git Best Practices
+**CRITICAL**: Always maintain proper git commit history throughout development sessions.
+- Commit changes after each significant feature or fix is completed
+- Use descriptive commit messages that explain what was accomplished
+- Don't accumulate changes across multiple features before committing
+- Follow the pattern: implement feature → test → commit → move to next feature
+- Example commit workflow:
+  ```bash
+  git add .
+  git commit -m "Add emoji picker functionality with categorized selection"
+  ```
+
+### Figma-to-SwiftUI Integration Workflow
+When working with Figma designs using the MCP server:
+1. **Node Selection**: Help user understand Figma "nodes" and selection process
+2. **Code Generation**: Use `mcp__figma-dev-mode-mcp-server__get_code` to generate SwiftUI
+3. **Image Context**: Always call `mcp__figma-dev-mode-mcp-server__get_image` after code generation
+4. **Iterative Design**: Expect multiple rounds of refinement based on visual feedback
+5. **Design Splitting**: Be prepared to logically split single Figma designs into multiple SwiftUI views
+6. **Font Integration**: Pay attention to custom fonts (Plus Jakarta Sans, Outfit) and implement properly
+
+### SwiftData Schema Migration Handling
+When adding properties to SwiftData models:
+- **Expect Migration Issues**: Adding new properties can cause ModelContainer creation failures
+- **Error Handling Pattern**: Implement try-catch with database recreation fallback in XiApp.swift:
+  ```swift
+  do {
+      sharedModelContainer = try ModelContainer(for: schema, configurations: [modelConfiguration])
+  } catch {
+      // Recreate database for schema changes
+      let url = URL.applicationSupportDirectory.appending(path: "default.store")
+      if FileManager.default.fileExists(atPath: url.path) {
+          try FileManager.default.removeItem(at: url)
+      }
+      sharedModelContainer = try ModelContainer(for: schema, configurations: [modelConfiguration])
+  }
+  ```
+- **Default Values**: Always provide sensible defaults for new properties in model initializers
+
+### Iterative Development Process
+- **User Feedback Integration**: Expect multiple rounds of UI/UX refinement
+- **Layout Debugging**: Be prepared to fix layout issues (ScrollView nesting, floating elements)
+- **Visual Consistency**: Apply design changes consistently across all screens
+- **Immediate Testing**: Build and launch after each significant change for visual verification
+
 ### Code Update Guidelines
-- Whenever you update the code in this project, you should automatically rebuild and relaunch it using the appropriate MCP.
+- Whenever you update the code in this project, you should automatically rebuild and relaunch it using the appropriate MCP
+- Test functionality immediately after implementation
+- Address any build errors or warnings before proceeding to next task
+
+## Assistant Improvement Guidelines
+
+### Session Management
+- **Maintain Context**: Keep track of what has been implemented throughout the session
+- **Todo Management**: Use TodoWrite tool proactively to track progress and pending tasks
+- **Git Hygiene**: Commit changes regularly, not just at the end of sessions
+- **Error Recovery**: When encountering crashes or build issues, methodically debug and document solutions
+
+### Communication Best Practices
+- **Visual Verification**: Always build and test UI changes in simulator for layout confirmation
+- **User Collaboration**: Help users understand technical concepts (nodes, schema migration, etc.) when needed
+- **Iterative Refinement**: Expect and plan for multiple rounds of polish and refinement
+- **Proactive Problem Solving**: Anticipate common issues (layout problems, binding errors, migration crashes)
+
+### Technical Excellence
+- **Error Handling**: Implement robust error handling patterns, especially for data layer changes
+- **Code Quality**: Follow existing code conventions and maintain consistency
+- **Testing Integration**: Use available testing infrastructure for verification
+- **Performance Awareness**: Consider implications of UI changes on app performance

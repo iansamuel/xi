@@ -9,6 +9,8 @@ import SwiftUI
 import SwiftData
 import UserNotifications
 
+import SwiftData
+
 class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
     var modelContainer: ModelContainer?
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
@@ -21,59 +23,71 @@ class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         }
         
         Task { @MainActor in
-            await self.handleHabitResponse(response.actionIdentifier, habitIdHash: habitIdHash)
-        }
-        
-        completionHandler()
-    }
-    
-    @MainActor
-    private func handleHabitResponse(_ actionIdentifier: String, habitIdHash: Int) async {
-        // Get the model context from the injected container
-        guard let container = modelContainer else {
-            print("❌ No model container available")
-            return
-        }
-        
-        let context = container.mainContext
-        
-        // Find the habit by hash value
-        let fetchDescriptor = FetchDescriptor<Habit>()
-        do {
-            let habits = try context.fetch(fetchDescriptor)
-            guard let habit = habits.first(where: { $0.persistentModelID.hashValue == habitIdHash }) else {
-                print("❌ Could not find habit with hash: \(habitIdHash)")
+            // Get the model context from the injected container
+            guard let container = modelContainer else {
+                print("❌ No model container available")
+                completionHandler()
                 return
             }
             
-            switch actionIdentifier {
-            case "YES_ACTION":
-                print("✅ User completed habit: \(habit.name)")
-                habit.recordSuccess()
-                // Reschedule notification
-                NotificationManager.shared.scheduleHabitNotification(for: habit)
+            let context = container.mainContext
+            
+            // Find the habit by hash value
+            let fetchDescriptor = FetchDescriptor<Habit>()
+            do {
+                let habits = try context.fetch(fetchDescriptor)
+                guard let habit = habits.first(where: { $0.persistentModelID.hashValue == habitIdHash }) else {
+                    print("❌ Could not find habit with hash: \(habitIdHash)")
+                    completionHandler()
+                    return
+                }
                 
-            case "NO_ACTION":
-                print("❌ User did not complete habit: \(habit.name)")
-                habit.recordFailure()
-                // Reschedule notification
-                NotificationManager.shared.scheduleHabitNotification(for: habit)
+                if response.actionIdentifier == UNNotificationDefaultActionIdentifier {
+                    // User tapped the notification body, present the confirmation view
+                    NotificationManager.shared.habitToConfirm = habit
+                    print("✅ Notification tapped for habit: \(habit.name). Setting habitToConfirm.")
+                } else {
+                    // User selected an interactive action (YES, NO, LATER)
+                    await self.handleHabitResponse(response.actionIdentifier, habit: habit, context: context)
+                }
                 
-            case "LATER_ACTION":
-                print("⏰ User asked to be reminded later: \(habit.name)")
-                habit.recordLater()
-                // Reschedule notification
-                NotificationManager.shared.scheduleHabitNotification(for: habit)
-                
-            default:
-                break
+            } catch {
+                print("❌ Error handling notification response: \(error)")
             }
+            completionHandler()
+        }
+    }
+    
+    @MainActor
+    private func handleHabitResponse(_ actionIdentifier: String, habit: Habit, context: ModelContext) async {
+        switch actionIdentifier {
+        case "YES_ACTION":
+            print("✅ User completed habit: \(habit.name)")
+            habit.recordSuccess()
+            // Reschedule notification
+            NotificationManager.shared.scheduleHabitNotification(for: habit)
             
-            // Save the context
+        case "NO_ACTION":
+            print("❌ User did not complete habit: \(habit.name)")
+            habit.recordFailure()
+            // Reschedule notification
+            NotificationManager.shared.scheduleHabitNotification(for: habit)
+            
+        case "LATER_ACTION":
+            print("⏰ User asked to be reminded later: \(habit.name)")
+            habit.recordLater()
+            // Reschedule notification
+            NotificationManager.shared.scheduleHabitNotification(for: habit)
+            
+        default:
+                break
+        }
+        
+        // Save the context
+        do {
             try context.save()
-            
         } catch {
-            print("❌ Error handling habit response: \(error)")
+            print("❌ Error saving context after habit response: \(error)")
         }
     }
     
@@ -121,6 +135,7 @@ struct XiApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(NotificationManager.shared) // Provide as environment object
                 .task {
                     await NotificationManager.shared.requestPermission()
                     await NotificationManager.shared.checkPermissionStatus()

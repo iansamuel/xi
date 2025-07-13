@@ -13,6 +13,7 @@ class NotificationManager: ObservableObject {
     static let shared = NotificationManager()
     
     @Published var hasPermission = false
+    @Published var habitToConfirm: Habit? // New property to hold the habit for confirmation
     
     private init() {}
     
@@ -106,8 +107,9 @@ class NotificationManager: ObservableObject {
     }
     
     func cancelNotification(for habit: Habit) {
-        let identifier = "habit_\(habit.persistentModelID.hashValue)"
-        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier])
+        let regularIdentifier = "habit_\(habit.persistentModelID.hashValue)"
+        let testIdentifier = "test_habit_\(habit.persistentModelID.hashValue)"
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [regularIdentifier, testIdentifier])
     }
     
     func cancelAllNotifications() {

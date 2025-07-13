@@ -182,182 +182,139 @@ struct HabitDetailView: View {
             
             ScrollView {
                 VStack(spacing: 0) {
-                        // Habit Name Field
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "house")
-                                    .foregroundColor(Color(red: 0.18, green: 0.129, blue: 0.078).opacity(0.62))
-                                    .font(.system(size: 18))
-                                
-                                TextField("Habit Name", text: $editedName)
-                                    .font(.custom("Plus Jakarta Sans", size: 17))
-                                    .foregroundColor(Color(red: 0.18, green: 0.129, blue: 0.078).opacity(0.62))
-                                    .onSubmit {
-                                        if !editedName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                            habit.name = editedName.trimmingCharacters(in: .whitespacesAndNewlines)
-                                        }
+                    // Habit Name Field
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "house")
+                                .foregroundColor(Color(red: 0.18, green: 0.129, blue: 0.078).opacity(0.62))
+                                .font(.system(size: 18))
+                            
+                            TextField("Habit Name", text: $editedName)
+                                .font(.custom("Plus Jakarta Sans", size: 17))
+                                .foregroundColor(.black)
+                                .onSubmit {
+                                    if !editedName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                        habit.name = editedName.trimmingCharacters(in: .whitespacesAndNewlines)
                                     }
+                                }
+                        }
+                        .padding(.horizontal, 13)
+                        .padding(.vertical, 13.5)
+                        .background(Color(red: 0.447, green: 0.322, blue: 0.192).opacity(0.09))
+                        .cornerRadius(20)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 10)
+                    .padding(.bottom, 10)
+                    
+                    // Icon Chips
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            // Emoji Picker Button
+                            Button(action: { showingEmojiPicker = true }) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "face.smiling")
+                                        .font(.system(size: 16))
+                                    Text("Pick Emoji")
+                                        .font(.custom("Plus Jakarta Sans", size: 13).weight(.medium))
+                                }
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(Color(red: 0.996, green: 0.988, blue: 0.984))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 20)
+                                        .stroke(Color(red: 0.431, green: 0.361, blue: 0.286).opacity(0.2), lineWidth: 0.5)
+                                )
+                                .cornerRadius(20)
                             }
-                            .padding(.horizontal, 13)
-                            .padding(.vertical, 13.5)
-                            .background(Color(red: 0.447, green: 0.322, blue: 0.192).opacity(0.09))
-                            .cornerRadius(20)
+                            
+                            // Currently selected emoji (always shown right after Pick Emoji)
+                            EmojiChipView(emoji: habit.selectedIcon, isSelected: true) {
+                                // Tapping the selected emoji also opens the picker
+                                showingEmojiPicker = true
+                            }
+                            
+                            // Pre-defined emoji options (excluding the currently selected one)
+                            ForEach(popularEmojis.filter { $0 != habit.selectedIcon }, id: \.self) { emoji in
+                                EmojiChipView(emoji: emoji, isSelected: false) {
+                                    habit.selectedIcon = emoji
+                                }
+                            }
                         }
                         .padding(.horizontal, 20)
-                        .padding(.top, 10)
-                        .padding(.bottom, 10)
-                        
-                        // Icon Chips
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                // Emoji Picker Button
-                                Button(action: { showingEmojiPicker = true }) {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: "face.smiling")
-                                            .font(.system(size: 16))
-                                        Text("Pick Emoji")
-                                            .font(.custom("Plus Jakarta Sans", size: 13).weight(.medium))
-                                    }
-                                    .foregroundColor(.black)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
-                                    .background(Color(red: 0.996, green: 0.988, blue: 0.984))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 20)
-                                            .stroke(Color(red: 0.431, green: 0.361, blue: 0.286).opacity(0.2), lineWidth: 0.5)
-                                    )
-                                    .cornerRadius(20)
-                                }
-                                
-                                // Pre-defined emoji options
-                                ForEach(popularEmojis, id: \.self) { emoji in
-                                    EmojiChipView(emoji: emoji, isSelected: habit.selectedIcon == emoji) {
-                                        habit.selectedIcon = emoji
-                                    }
-                                }
-                            }
-                            .padding(.horizontal, 20)
-                        }
-                        .padding(.bottom, 20)
-                        
-                        // Success Rate Section
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Your Success Rate")
-                                .font(.custom("Plus Jakarta Sans", size: 18).weight(.bold))
-                                .foregroundColor(.black)
-                                .padding(.horizontal, 20)
-                                .padding(.top, 32)
-                            
-                            Text("Success Rate")
-                                .font(.custom("Plus Jakarta Sans", size: 17))
-                                .foregroundColor(Color(red: 0.18, green: 0.129, blue: 0.078).opacity(0.62))
-                                .padding(.horizontal, 20)
-                                .padding(.bottom, 6)
-                            
-                            HStack(spacing: 8) {
-                                Image(systemName: "clock.badge.checkmark")
-                                    .foregroundColor(Color(red: 0.18, green: 0.129, blue: 0.078).opacity(0.62))
-                                    .font(.system(size: 18))
-                                
-                                Text("\(habit.successRate, specifier: "%.0f")%")
-                                    .font(.custom("Plus Jakarta Sans", size: 17))
-                                    .foregroundColor(Color(red: 0.18, green: 0.129, blue: 0.078).opacity(0.62))
-                                
-                                Spacer()
-                            }
-                            .padding(.horizontal, 13)
-                            .padding(.vertical, 13.5)
-                            .background(Color(red: 0.447, green: 0.322, blue: 0.192).opacity(0.09))
-                            .cornerRadius(20)
-                            .padding(.horizontal, 20)
-                        }
-                        
-                        // Next Reminder Section
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Next Scheduled Reminder")
-                                .font(.custom("Plus Jakarta Sans", size: 18).weight(.bold))
-                                .foregroundColor(.black)
-                                .padding(.horizontal, 20)
-                                .padding(.top, 32)
-                            
-                            Text("Next Reminder")
-                                .font(.custom("Plus Jakarta Sans", size: 17))
-                                .foregroundColor(Color(red: 0.18, green: 0.129, blue: 0.078).opacity(0.62))
-                                .padding(.horizontal, 20)
-                                .padding(.bottom, 6)
-                            
-                            HStack(spacing: 8) {
-                                Image(systemName: "bell")
-                                    .foregroundColor(Color(red: 0.18, green: 0.129, blue: 0.078).opacity(0.62))
-                                    .font(.system(size: 18))
-                                
-                                Text(formatNextReminder(habit.nextNotificationDate))
-                                    .font(.custom("Plus Jakarta Sans", size: 17))
-                                    .foregroundColor(Color(red: 0.18, green: 0.129, blue: 0.078).opacity(0.62))
-                                
-                                Spacer()
-                            }
-                            .padding(.horizontal, 13)
-                            .padding(.vertical, 13.5)
-                            .background(Color(red: 0.447, green: 0.322, blue: 0.192).opacity(0.09))
-                            .cornerRadius(20)
-                            .padding(.horizontal, 20)
-                        }
-                        
-                        // Additional empty fields (as shown in design)
-                        VStack(spacing: 10) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "calendar")
-                                    .foregroundColor(Color(red: 0.18, green: 0.129, blue: 0.078).opacity(0.62))
-                                    .font(.system(size: 18))
-                                Spacer()
-                            }
-                            .padding(.horizontal, 13)
-                            .padding(.vertical, 13.5)
-                            .background(Color(red: 0.447, green: 0.322, blue: 0.192).opacity(0.09))
-                            .cornerRadius(20)
-                            .padding(.horizontal, 20)
-                            .padding(.top, 20)
-                            
-                            HStack(spacing: 8) {
-                                Image(systemName: "calendar")
-                                    .foregroundColor(Color(red: 0.18, green: 0.129, blue: 0.078).opacity(0.62))
-                                    .font(.system(size: 18))
-                                Spacer()
-                            }
-                            .padding(.horizontal, 13)
-                            .padding(.vertical, 13.5)
-                            .background(Color(red: 0.447, green: 0.322, blue: 0.192).opacity(0.09))
-                            .cornerRadius(20)
-                            .padding(.horizontal, 20)
-                        }
-                        
-                        Spacer(minLength: 120)
                     }
-                }
-            
-            // Floating Add Button overlay
-            VStack {
-                Spacer()
-                HStack {
-                    Spacer()
-                    Button(action: {}) {
+                    .padding(.bottom, 20)
+                    
+                    // Frequency Chips
+                    ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
-                            Image(systemName: "plus")
-                                .foregroundColor(.black)
-                                .font(.system(size: 17, weight: .medium))
-                            Text("Add Habit")
-                                .foregroundColor(.black)
-                                .font(.custom("Plus Jakarta Sans", size: 17).weight(.medium))
+                            ForEach(["Daily", "Weekly", "Monthly", "Custom"], id: \.self) { frequency in
+                                FrequencyChipView(
+                                    frequency: frequency,
+                                    isSelected: habit.frequency == frequency
+                                ) {
+                                    habit.frequency = frequency
+                                }
+                            }
                         }
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 16)
-                        .background(Color(red: 1.0, green: 0.5, blue: 0.0))
-                        .cornerRadius(30)
-                        .shadow(color: .black.opacity(0.08), radius: 3.5, x: 0, y: 2)
+                        .padding(.horizontal, 20)
                     }
-                    .padding(.trailing, 16)
-                    .padding(.bottom, 32)
+                    .padding(.bottom, 20)
+                    
+                    // Success Rate Section
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Your Success Rate")
+                            .font(.custom("Plus Jakarta Sans", size: 18).weight(.bold))
+                            .foregroundColor(.black)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 32)
+                        
+                        HStack(spacing: 8) {
+                            Image(systemName: "clock.badge.checkmark")
+                                .foregroundColor(Color(red: 0.18, green: 0.129, blue: 0.078).opacity(0.62))
+                                .font(.system(size: 18))
+                            
+                            Text("\(habit.successRate, specifier: "%.0f")%")
+                                .font(.custom("Plus Jakarta Sans", size: 17))
+                                .foregroundColor(Color(red: 0.18, green: 0.129, blue: 0.078).opacity(0.62))
+                            
+                            Spacer()
+                        }
+                        .padding(.horizontal, 13)
+                        .padding(.vertical, 13.5)
+                        .background(Color(red: 0.447, green: 0.322, blue: 0.192).opacity(0.09))
+                        .cornerRadius(20)
+                        .padding(.horizontal, 20)
+                    }
+                    
+                    // Next Reminder Section
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Next Scheduled Reminder")
+                            .font(.custom("Plus Jakarta Sans", size: 18).weight(.bold))
+                            .foregroundColor(.black)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 32)
+                        
+                        HStack(spacing: 8) {
+                            Image(systemName: "bell")
+                                .foregroundColor(Color(red: 0.18, green: 0.129, blue: 0.078).opacity(0.62))
+                                .font(.system(size: 18))
+                            
+                            Text(formatNextReminder(habit.nextNotificationDate))
+                                .font(.custom("Plus Jakarta Sans", size: 17))
+                                .foregroundColor(Color(red: 0.18, green: 0.129, blue: 0.078).opacity(0.62))
+                            
+                            Spacer()
+                        }
+                        .padding(.horizontal, 13)
+                        .padding(.vertical, 13.5)
+                        .background(Color(red: 0.447, green: 0.322, blue: 0.192).opacity(0.09))
+                        .cornerRadius(20)
+                        .padding(.horizontal, 20)
+                    }
+                    
+                    Spacer(minLength: 40)
                 }
             }
         }
@@ -476,40 +433,147 @@ struct EmojiPickerView: View {
 struct AddHabitView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var habitName = ""
+    @State private var selectedFrequency = "Daily"
     let onSave: (String) -> Void
+    
+    let frequencies = ["Daily", "Weekly", "Monthly", "Custom"]
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                TextField("Habit name", text: $habitName)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.title2)
+            ZStack {
+                Color(red: 1.0, green: 0.988, blue: 0.98)
+                    .ignoresSafeArea()
                 
-                Text("Enter a name for your new habit")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                
-                Spacer()
+                VStack(spacing: 0) {
+                    // Habit Name Field
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "scissors")
+                                .foregroundColor(Color(red: 0.18, green: 0.129, blue: 0.078).opacity(0.62))
+                                .font(.system(size: 18))
+                            
+                            TextField("Habit Name", text: $habitName)
+                                .font(.custom("Plus Jakarta Sans", size: 17))
+                                .foregroundColor(.black)
+                        }
+                        .padding(.horizontal, 13)
+                        .padding(.vertical, 13.5)
+                        .background(Color(red: 0.447, green: 0.322, blue: 0.192).opacity(0.09))
+                        .cornerRadius(20)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
+                    .padding(.bottom, 10)
+                    
+                    // Frequency Field
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "calendar.badge.plus")
+                                .foregroundColor(Color(red: 0.18, green: 0.129, blue: 0.078).opacity(0.62))
+                                .font(.system(size: 18))
+                            
+                            Text("Frequency")
+                                .font(.custom("Plus Jakarta Sans", size: 17))
+                                .foregroundColor(Color(red: 0.18, green: 0.129, blue: 0.078).opacity(0.62))
+                            
+                            Spacer()
+                        }
+                        .padding(.horizontal, 13)
+                        .padding(.vertical, 13.5)
+                        .background(Color(red: 0.447, green: 0.322, blue: 0.192).opacity(0.09))
+                        .cornerRadius(20)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 10)
+                    
+                    // Frequency Chips
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(frequencies, id: \.self) { frequency in
+                                FrequencyChipView(
+                                    frequency: frequency,
+                                    isSelected: selectedFrequency == frequency
+                                ) {
+                                    selectedFrequency = frequency
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                    }
+                    .padding(.bottom, 20)
+                    
+                    Spacer()
+                    
+                    // Add Habit Button
+                    Button(action: {
+                        if !habitName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            onSave(habitName.trimmingCharacters(in: .whitespacesAndNewlines))
+                            dismiss()
+                        }
+                    }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "plus")
+                                .foregroundColor(.black)
+                                .font(.system(size: 17, weight: .medium))
+                            Text("Add Habit")
+                                .foregroundColor(.black)
+                                .font(.custom("Plus Jakarta Sans", size: 17).weight(.medium))
+                        }
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 16)
+                        .background(Color(red: 1.0, green: 0.5, blue: 0.0))
+                        .cornerRadius(30)
+                        .shadow(color: .black.opacity(0.08), radius: 3.5, x: 0, y: 2)
+                    }
+                    .disabled(habitName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .opacity(habitName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.6 : 1.0)
+                    .padding(.bottom, 40)
+                }
             }
-            .padding()
-            .navigationTitle("New Habit")
+            .navigationTitle("Add Habit")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
                         dismiss()
                     }
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
-                        if !habitName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                            onSave(habitName.trimmingCharacters(in: .whitespacesAndNewlines))
-                            dismiss()
-                        }
-                    }
-                    .disabled(habitName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .foregroundColor(Color(red: 0.18, green: 0.129, blue: 0.078).opacity(0.62))
                 }
             }
+        }
+    }
+}
+
+struct FrequencyChipView: View {
+    let frequency: String
+    let isSelected: Bool
+    let action: () -> Void
+    
+    private var iconName: String {
+        switch frequency {
+        case "Daily": return "sun.max"
+        case "Weekly": return "calendar"
+        case "Monthly": return "moon"
+        case "Custom": return "gearshape"
+        default: return "circle"
+        }
+    }
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Text(frequency)
+                    .font(.custom("Plus Jakarta Sans", size: 13).weight(.medium))
+                    .foregroundColor(isSelected ? .white : .black)
+                
+                Image(systemName: iconName)
+                    .font(.system(size: 16))
+                    .foregroundColor(isSelected ? .white : Color(red: 0.18, green: 0.129, blue: 0.078).opacity(0.62))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 5)
+            .background(isSelected ? Color(red: 1.0, green: 0.5, blue: 0.0) : Color(red: 0.447, green: 0.322, blue: 0.192).opacity(0.09))
+            .cornerRadius(20)
         }
     }
 }

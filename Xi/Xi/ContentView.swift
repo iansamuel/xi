@@ -91,8 +91,8 @@ struct ContentView: View {
             }
             .navigationBarHidden(true)
             .sheet(isPresented: $showingAddHabit) {
-                AddHabitView { habitName in
-                    addHabit(name: habitName)
+                AddHabitView { habitName, frequency in
+                    addHabit(name: habitName, frequency: frequency)
                 }
             }
             .sheet(isPresented: $showingSettings) {
@@ -102,9 +102,10 @@ struct ContentView: View {
         .navigationViewStyle(StackNavigationViewStyle())
     }
 
-    private func addHabit(name: String) {
+    private func addHabit(name: String, frequency: String) {
         withAnimation {
             let newHabit = Habit(name: name, habitDescription: "")
+            newHabit.frequency = frequency
             modelContext.insert(newHabit)
             
             // Schedule notification for the new habit
@@ -434,7 +435,7 @@ struct AddHabitView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var habitName = ""
     @State private var selectedFrequency = "Daily"
-    let onSave: (String) -> Void
+    let onSave: (String, String) -> Void
     
     let frequencies = ["Daily", "Weekly", "Monthly", "Custom"]
     
@@ -507,7 +508,7 @@ struct AddHabitView: View {
                     // Add Habit Button
                     Button(action: {
                         if !habitName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                            onSave(habitName.trimmingCharacters(in: .whitespacesAndNewlines))
+                            onSave(habitName.trimmingCharacters(in: .whitespacesAndNewlines), selectedFrequency)
                             dismiss()
                         }
                     }) {

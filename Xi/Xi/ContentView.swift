@@ -191,8 +191,28 @@ struct HabitDetailView: View {
     @Bindable var habit: Habit
     @State private var editedName = ""
     @State private var showingEmojiPicker = false
+    @State private var initialSelectedIcon = "" // Track initial emoji for stable ordering
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext // Add this line
+    
+    // Computed property for stable emoji ordering
+    private var orderedEmojis: [String] {
+        var result: [String] = []
+        
+        // First, add the initial selected emoji if it exists in popularEmojis
+        if !initialSelectedIcon.isEmpty && popularEmojis.contains(initialSelectedIcon) {
+            result.append(initialSelectedIcon)
+        }
+        
+        // Then add all other emojis in their original order
+        for emoji in popularEmojis {
+            if emoji != initialSelectedIcon {
+                result.append(emoji)
+            }
+        }
+        
+        return result
+    }
     
     var body: some View {
         ZStack {
@@ -248,16 +268,16 @@ struct HabitDetailView: View {
                                 .cornerRadius(20)
                             }
                             
-                            // Currently selected emoji (always shown right after Pick Emoji)
-                            EmojiChipView(emoji: habit.selectedIcon, isSelected: true) {
-                                // Tapping the selected emoji also opens the picker
-                                showingEmojiPicker = true
-                            }
-                            
-                            // Pre-defined emoji options (excluding the currently selected one)
-                            ForEach(popularEmojis.filter { $0 != habit.selectedIcon }, id: \.self) { emoji in
-                                EmojiChipView(emoji: emoji, isSelected: false) {
-                                    habit.selectedIcon = emoji
+                            // Show emojis in stable order with current selection highlighted
+                            ForEach(orderedEmojis, id: \.self) { emoji in
+                                EmojiChipView(emoji: emoji, isSelected: emoji == habit.selectedIcon) {
+                                    if emoji == habit.selectedIcon {
+                                        // Tapping the selected emoji opens the picker
+                                        showingEmojiPicker = true
+                                    } else {
+                                        // Tapping other emojis selects them
+                                        habit.selectedIcon = emoji
+                                    }
                                 }
                             }
                         }
@@ -363,6 +383,7 @@ struct HabitDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             editedName = habit.name
+            initialSelectedIcon = habit.selectedIcon // Capture initial emoji for stable ordering
         }
         .sheet(isPresented: $showingEmojiPicker) {
             EmojiPickerView(selectedIcon: Binding(

@@ -199,12 +199,19 @@ struct HabitDetailView: View {
     private var orderedEmojis: [String] {
         var result: [String] = []
         
-        // First, add the initial selected emoji if it exists in popularEmojis
+        // First, add the currently selected emoji if it's not in popularEmojis
+        // This handles custom emojis from the picker
+        if !habit.selectedIcon.isEmpty && !popularEmojis.contains(habit.selectedIcon) {
+            result.append(habit.selectedIcon)
+        }
+        
+        // Then, add the initial selected emoji if it exists in popularEmojis
+        // This ensures the originally selected popular emoji appears first
         if !initialSelectedIcon.isEmpty && popularEmojis.contains(initialSelectedIcon) {
             result.append(initialSelectedIcon)
         }
         
-        // Then add all other emojis in their original order
+        // Finally, add all other popular emojis in their original order
         for emoji in popularEmojis {
             if emoji != initialSelectedIcon {
                 result.append(emoji)

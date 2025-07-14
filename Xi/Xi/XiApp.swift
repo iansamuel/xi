@@ -44,8 +44,11 @@ class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
                 
                 if response.actionIdentifier == UNNotificationDefaultActionIdentifier {
                     // User tapped the notification body, present the confirmation view
-                    NotificationManager.shared.habitToConfirm = habit
                     print("✅ Notification tapped for habit: \(habit.name). Setting habitToConfirm.")
+                    // Dispatch to main queue to ensure UI updates happen on main thread
+                    DispatchQueue.main.async {
+                        NotificationManager.shared.habitToConfirm = habit
+                    }
                 } else {
                     // User selected an interactive action (YES, NO, LATER)
                     await self.handleHabitResponse(response.actionIdentifier, habit: habit, context: context)

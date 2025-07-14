@@ -109,6 +109,14 @@ struct ContentView: View {
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())
+        .onAppear {
+            // Check for overdue habits when the view appears
+            notificationManager.checkForOverdueHabits(habits)
+        }
+        .onChange(of: habits) { _, newHabits in
+            // Also check when habits list changes (like when app returns to foreground)
+            notificationManager.checkForOverdueHabits(newHabits)
+        }
     }
 
     private func addHabit(name: String, frequency: String) {

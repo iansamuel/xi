@@ -14,6 +14,7 @@ class NotificationManager: ObservableObject {
     
     @Published var hasPermission = false
     @Published var habitToConfirm: Habit? // New property to hold the habit for confirmation
+    @Published var overdueHabitsQueue: [Habit] = [] // Queue of overdue habits to prompt for
     
     private init() {}
     
@@ -154,5 +155,37 @@ class NotificationManager: ObservableObject {
                 }
             }
         }
+    }
+    
+    // MARK: - Overdue Habit Management
+    
+    func checkForOverdueHabits(_ habits: [Habit]) {
+        let now = Date()
+        let overdueHabits = habits.filter { habit in
+            habit.isActive && habit.nextNotificationDate < now
+        }
+        
+        if !overdueHabits.isEmpty {
+            print("📋 Found \(overdueHabits.count) overdue habits")
+            overdueHabitsQueue = overdueHabits
+            processNextOverdueHabit()
+        }
+    }
+    
+    private func processNextOverdueHabit() {
+        guard !overdueHabitsQueue.isEmpty else { return }
+        
+        // If we're already showing a habit confirmation, don't show another
+        guard habitToConfirm == nil else { return }
+        
+        let nextHabit = overdueHabitsQueue.removeFirst()
+        print("⏰ Showing overdue habit: \(nextHabit.name)")
+        habitToConfirm = nextHabit
+    }
+    
+    func markCurrentHabitCompleted() {
+        habitToConfirm = nil
+        // Process next overdue habit if any remain
+        processNextOverdueHabit()
     }
 }

@@ -8,8 +8,7 @@
 import SwiftUI
 import SwiftData
 import UserNotifications
-
-import SwiftData
+import UIKit
 
 class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
     var modelContainer: ModelContainer?
@@ -144,6 +143,19 @@ struct XiApp: App {
                     await NotificationManager.shared.checkPermissionStatus()
                     NotificationManager.shared.setupNotificationCategories()
                     UNUserNotificationCenter.current().delegate = notificationDelegate
+                }
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+                    // When app becomes active, check for overdue habits
+                    Task { @MainActor in
+                        let context = sharedModelContainer.mainContext
+                        let fetchDescriptor = FetchDescriptor<Habit>()
+                        do {
+                            let habits = try context.fetch(fetchDescriptor)
+                            NotificationManager.shared.checkForOverdueHabits(habits)
+                        } catch {
+                            print("❌ Error fetching habits for overdue check: \(error)")
+                        }
+                    }
                 }
         }
         .modelContainer(sharedModelContainer)

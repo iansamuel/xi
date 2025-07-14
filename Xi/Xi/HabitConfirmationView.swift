@@ -117,7 +117,7 @@ struct HabitConfirmationView: View {
                         Button(action: {
                             habit.recordSuccess()
                             notificationManager.scheduleHabitNotification(for: habit)
-                            notificationManager.habitToConfirm = nil // Dismiss action
+                            notificationManager.markCurrentHabitCompleted() // Use new method to handle queue
                         }) {
                             HStack(spacing: 8) { // gap-2
                                 Image(systemName: "checkmark.circle.fill") // Placeholder for Checkmark
@@ -139,7 +139,7 @@ struct HabitConfirmationView: View {
                         Button(action: {
                             habit.recordFailure()
                             notificationManager.scheduleHabitNotification(for: habit)
-                            notificationManager.habitToConfirm = nil // Dismiss action
+                            notificationManager.markCurrentHabitCompleted() // Use new method to handle queue
                         }) {
                             HStack(spacing: 8) { // gap-2
                                 Image(systemName: "compass.circle.fill") // Placeholder for Compass
@@ -161,7 +161,7 @@ struct HabitConfirmationView: View {
                         Button(action: {
                             habit.recordLater()
                             notificationManager.scheduleHabitNotification(for: habit)
-                            notificationManager.habitToConfirm = nil // Dismiss action
+                            notificationManager.markCurrentHabitCompleted() // Use new method to handle queue
                         }) {
                             HStack(spacing: 8) { // gap-2
                                 Image(systemName: "clock.fill") // Placeholder for Clock

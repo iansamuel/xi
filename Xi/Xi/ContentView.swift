@@ -43,6 +43,11 @@ struct ContentView: View {
                                 .font(.custom("Outfit", size: 22))
                                 .foregroundColor(Color("PrimaryTextColor"))
                             Spacer()
+                            Button(action: { showingSettings = true }) {
+                                Image(systemName: "gearshape")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(Color("SecondaryTextColor"))
+                            }
                         }
                         .padding(.horizontal, 16)
                         .padding(.bottom, 6)

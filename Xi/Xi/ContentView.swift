@@ -192,35 +192,41 @@ struct HabitDetailView: View {
     @State private var editedName = ""
     @State private var showingEmojiPicker = false
     @State private var initialSelectedIcon = "" // Track initial emoji for stable ordering
+    @State private var sessionCustomEmojis: Set<String> = [] // Track all custom emojis added during this session
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext // Add this line
     
     // Computed property for stable emoji ordering
     private var orderedEmojis: [String] {
         var result: [String] = []
+        var addedEmojis: Set<String> = []
         
         // First, add the currently selected emoji if it's not in popularEmojis
         // This handles newly picked emojis from the picker, showing them first
         if !habit.selectedIcon.isEmpty && !popularEmojis.contains(habit.selectedIcon) {
             result.append(habit.selectedIcon)
+            addedEmojis.insert(habit.selectedIcon)
         }
         
-        // Then, add the initial selected emoji if it's not in popularEmojis and different from current
-        // This handles custom emojis from the picker - they stay in the list
-        // until the user reopens the sheet, preventing jarring "pop out" effect
-        if !initialSelectedIcon.isEmpty && !popularEmojis.contains(initialSelectedIcon) && initialSelectedIcon != habit.selectedIcon {
-            result.append(initialSelectedIcon)
+        // Then, add all other custom emojis from this session (excluding current selection)
+        // This keeps custom emojis stable in the list even after switching to other selections
+        for emoji in sessionCustomEmojis {
+            if !addedEmojis.contains(emoji) && !popularEmojis.contains(emoji) {
+                result.append(emoji)
+                addedEmojis.insert(emoji)
+            }
         }
         
-        // Next, add the initial selected emoji if it exists in popularEmojis
+        // Add the initial selected emoji if it exists in popularEmojis
         // This ensures the originally selected popular emoji appears first among popular ones
-        if !initialSelectedIcon.isEmpty && popularEmojis.contains(initialSelectedIcon) {
+        if !initialSelectedIcon.isEmpty && popularEmojis.contains(initialSelectedIcon) && !addedEmojis.contains(initialSelectedIcon) {
             result.append(initialSelectedIcon)
+            addedEmojis.insert(initialSelectedIcon)
         }
         
         // Finally, add all other popular emojis in their original order
         for emoji in popularEmojis {
-            if emoji != initialSelectedIcon {
+            if !addedEmojis.contains(emoji) {
                 result.append(emoji)
             }
         }
@@ -398,6 +404,17 @@ struct HabitDetailView: View {
         .onAppear {
             editedName = habit.name
             initialSelectedIcon = habit.selectedIcon // Capture initial emoji for stable ordering
+            
+            // Initialize session custom emojis with the initial one if it's not popular
+            if !habit.selectedIcon.isEmpty && !popularEmojis.contains(habit.selectedIcon) {
+                sessionCustomEmojis.insert(habit.selectedIcon)
+            }
+        }
+        .onChange(of: habit.selectedIcon) { _, newIcon in
+            // Track any new custom emojis selected during this session
+            if !newIcon.isEmpty && !popularEmojis.contains(newIcon) {
+                sessionCustomEmojis.insert(newIcon)
+            }
         }
         .sheet(isPresented: $showingEmojiPicker) {
             EmojiPickerView(selectedIcon: Binding(

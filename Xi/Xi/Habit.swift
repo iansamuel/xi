@@ -27,6 +27,10 @@ final class Habit {
     var minimumInterval: TimeInterval // Minimum time between notifications
     var maximumInterval: TimeInterval // Maximum time between notifications
     
+    // Relationship to HabitEvents for tracking
+    @Relationship(deleteRule: .cascade, inverse: \HabitEvent.habit)
+    var events: [HabitEvent] = []
+    
     init(name: String, habitDescription: String = "") {
         self.name = name
         self.habitDescription = habitDescription
@@ -46,21 +50,52 @@ final class Habit {
         self.maximumInterval = 86400 * 7 // 1 week maximum
     }
     
-    // Computed properties for tracking
+    // Computed properties for tracking based on logged events
     var successRate: Double {
-        guard totalAttempts > 0 else { return 0.0 }
-        return Double(successfulAttempts) / Double(totalAttempts)
+        let responseEvents = events.filter { $0.isResponse }
+        guard !responseEvents.isEmpty else { return 0.0 }
+        
+        let successCount = responseEvents.filter { $0.isSuccess }.count
+        return Double(successCount) / Double(responseEvents.count) * 100.0
     }
     
     var streakCount: Int {
-        // This would need to be calculated from a history of check-ins
-        // For now, return a simple calculation
-        return successfulAttempts
+        // Calculate current streak from recent events
+        let responseEvents = events.filter { $0.isResponse }
+            .sorted { $0.timestamp > $1.timestamp } // Most recent first
+        
+        var streak = 0
+        for event in responseEvents {
+            if event.isSuccess {
+                streak += 1
+            } else {
+                break
+            }
+        }
+        return streak
+    }
+    
+    // Additional computed properties for analytics
+    var totalResponses: Int {
+        return events.filter { $0.isResponse }.count
+    }
+    
+    var totalReminders: Int {
+        return events.filter { $0.isReminder }.count
+    }
+    
+    var recentEvents: [HabitEvent] {
+        return events.sorted { $0.timestamp > $1.timestamp }
     }
     
     // MARK: - Spaced Repetition Methods
     
-    func recordSuccess() {
+    func recordSuccess(context: ModelContext) {
+        // Log the success event
+        let event = HabitEvent(eventType: .responseSuccess, habit: self, intervalUsed: currentInterval)
+        context.insert(event)
+        
+        // Update legacy counters for compatibility
         totalAttempts += 1
         successfulAttempts += 1
         lastCheckedAt = Date()
@@ -70,7 +105,12 @@ final class Habit {
         scheduleNextNotification()
     }
     
-    func recordFailure() {
+    func recordFailure(context: ModelContext) {
+        // Log the failure event
+        let event = HabitEvent(eventType: .responseFailure, habit: self, intervalUsed: currentInterval)
+        context.insert(event)
+        
+        // Update legacy counters for compatibility
         totalAttempts += 1
         lastCheckedAt = Date()
         
@@ -79,10 +119,26 @@ final class Habit {
         scheduleNextNotification()
     }
     
-    func recordLater() {
+    func recordLater(context: ModelContext) {
+        // Log the later event
+        let event = HabitEvent(eventType: .responseLater, habit: self, intervalUsed: currentInterval)
+        context.insert(event)
+        
         // Don't count as attempt, just reschedule sooner
         currentInterval = max(currentInterval / 3.0, minimumInterval)
         scheduleNextNotification()
+    }
+    
+    func logReminderSent(context: ModelContext) {
+        // Log when a reminder is sent
+        let event = HabitEvent(eventType: .reminderSent, habit: self, intervalUsed: currentInterval)
+        context.insert(event)
+    }
+    
+    func logOverduePrompt(context: ModelContext) {
+        // Log when an overdue prompt is shown
+        let event = HabitEvent(eventType: .overduePrompt, habit: self, intervalUsed: currentInterval)
+        context.insert(event)
     }
     
     private func scheduleNextNotification() {

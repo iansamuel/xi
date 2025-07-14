@@ -65,21 +65,21 @@ class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         switch actionIdentifier {
         case "YES_ACTION":
             print("✅ User completed habit: \(habit.name)")
-            habit.recordSuccess()
+            habit.recordSuccess(context: context)
             // Reschedule notification
-            NotificationManager.shared.scheduleHabitNotification(for: habit)
+            NotificationManager.shared.scheduleHabitNotification(for: habit, context: context)
             
         case "NO_ACTION":
             print("❌ User did not complete habit: \(habit.name)")
-            habit.recordFailure()
+            habit.recordFailure(context: context)
             // Reschedule notification
-            NotificationManager.shared.scheduleHabitNotification(for: habit)
+            NotificationManager.shared.scheduleHabitNotification(for: habit, context: context)
             
         case "LATER_ACTION":
             print("⏰ User asked to be reminded later: \(habit.name)")
-            habit.recordLater()
+            habit.recordLater(context: context)
             // Reschedule notification
-            NotificationManager.shared.scheduleHabitNotification(for: habit)
+            NotificationManager.shared.scheduleHabitNotification(for: habit, context: context)
             
         default:
                 break
@@ -107,6 +107,7 @@ struct XiApp: App {
     init() {
         let schema = Schema([
             Habit.self,
+            HabitEvent.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -151,7 +152,7 @@ struct XiApp: App {
                         let fetchDescriptor = FetchDescriptor<Habit>()
                         do {
                             let habits = try context.fetch(fetchDescriptor)
-                            NotificationManager.shared.checkForOverdueHabits(habits)
+                            NotificationManager.shared.checkForOverdueHabits(habits, context: context)
                         } catch {
                             print("❌ Error fetching habits for overdue check: \(error)")
                         }

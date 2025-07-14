@@ -7,6 +7,7 @@
 
 import Foundation
 import UserNotifications
+import SwiftData
 
 @MainActor
 class NotificationManager: ObservableObject {
@@ -35,7 +36,7 @@ class NotificationManager: ObservableObject {
         hasPermission = settings.authorizationStatus == .authorized
     }
     
-    func scheduleHabitNotification(for habit: Habit) {
+    func scheduleHabitNotification(for habit: Habit, context: ModelContext? = nil) {
         guard hasPermission else { return }
         
         // Remove any existing notification for this habit
@@ -67,6 +68,14 @@ class NotificationManager: ObservableObject {
                 print("Error scheduling notification: \(error)")
             } else {
                 print("✅ Scheduled notification for \(habit.name) at \(habit.nextNotificationDate)")
+                
+                // Log the reminder if context is provided
+                if let context = context {
+                    Task { @MainActor in
+                        habit.logReminderSent(context: context)
+                        try? context.save()
+                    }
+                }
             }
         }
     }
@@ -159,7 +168,7 @@ class NotificationManager: ObservableObject {
     
     // MARK: - Overdue Habit Management
     
-    func checkForOverdueHabits(_ habits: [Habit]) {
+    func checkForOverdueHabits(_ habits: [Habit], context: ModelContext? = nil) {
         let now = Date()
         let overdueHabits = habits.filter { habit in
             habit.isActive && habit.nextNotificationDate < now
@@ -168,6 +177,15 @@ class NotificationManager: ObservableObject {
         if !overdueHabits.isEmpty {
             print("📋 Found \(overdueHabits.count) overdue habits")
             overdueHabitsQueue = overdueHabits
+            
+            // Log overdue prompts for each habit
+            if let context = context {
+                for habit in overdueHabits {
+                    habit.logOverduePrompt(context: context)
+                }
+                try? context.save()
+            }
+            
             processNextOverdueHabit()
         }
     }

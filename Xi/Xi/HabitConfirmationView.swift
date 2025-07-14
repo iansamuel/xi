@@ -4,6 +4,7 @@ import SwiftData // Import SwiftData
 struct HabitConfirmationView: View {
     @Bindable var habit: Habit // Non-optional binding
     @EnvironmentObject var notificationManager: NotificationManager // EnvironmentObject
+    @Environment(\.modelContext) private var modelContext
     
     var body: some View {
         ZStack {
@@ -115,8 +116,8 @@ struct HabitConfirmationView: View {
                     VStack(spacing: 16) { // gap-4
                         // Yes, I Remembered Button
                         Button(action: {
-                            habit.recordSuccess()
-                            notificationManager.scheduleHabitNotification(for: habit)
+                            habit.recordSuccess(context: modelContext)
+                            notificationManager.scheduleHabitNotification(for: habit, context: modelContext)
                             notificationManager.markCurrentHabitCompleted() // Use new method to handle queue
                         }) {
                             HStack(spacing: 8) { // gap-2
@@ -137,8 +138,8 @@ struct HabitConfirmationView: View {
 
                         // No, I Forgot Button
                         Button(action: {
-                            habit.recordFailure()
-                            notificationManager.scheduleHabitNotification(for: habit)
+                            habit.recordFailure(context: modelContext)
+                            notificationManager.scheduleHabitNotification(for: habit, context: modelContext)
                             notificationManager.markCurrentHabitCompleted() // Use new method to handle queue
                         }) {
                             HStack(spacing: 8) { // gap-2
@@ -159,8 +160,8 @@ struct HabitConfirmationView: View {
 
                         // Hasn't Come Up Yet Button
                         Button(action: {
-                            habit.recordLater()
-                            notificationManager.scheduleHabitNotification(for: habit)
+                            habit.recordLater(context: modelContext)
+                            notificationManager.scheduleHabitNotification(for: habit, context: modelContext)
                             notificationManager.markCurrentHabitCompleted() // Use new method to handle queue
                         }) {
                             HStack(spacing: 8) { // gap-2

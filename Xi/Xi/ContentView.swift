@@ -111,11 +111,11 @@ struct ContentView: View {
         .navigationViewStyle(StackNavigationViewStyle())
         .onAppear {
             // Check for overdue habits when the view appears
-            notificationManager.checkForOverdueHabits(habits)
+            notificationManager.checkForOverdueHabits(habits, context: modelContext)
         }
         .onChange(of: habits) { _, newHabits in
             // Also check when habits list changes (like when app returns to foreground)
-            notificationManager.checkForOverdueHabits(newHabits)
+            notificationManager.checkForOverdueHabits(newHabits, context: modelContext)
         }
     }
 
@@ -129,7 +129,7 @@ struct ContentView: View {
             Task {
                 await NotificationManager.shared.checkPermissionStatus()
                 if NotificationManager.shared.hasPermission {
-                    NotificationManager.shared.scheduleHabitNotification(for: newHabit)
+                    NotificationManager.shared.scheduleHabitNotification(for: newHabit, context: modelContext)
                 }
             }
         }

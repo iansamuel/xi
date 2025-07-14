@@ -199,10 +199,11 @@ struct HabitDetailView: View {
     private var orderedEmojis: [String] {
         var result: [String] = []
         
-        // First, add the currently selected emoji if it's not in popularEmojis
-        // This handles custom emojis from the picker
-        if !habit.selectedIcon.isEmpty && !popularEmojis.contains(habit.selectedIcon) {
-            result.append(habit.selectedIcon)
+        // First, add the initial selected emoji if it's not in popularEmojis
+        // This handles custom emojis from the picker - they stay in the list
+        // until the user reopens the sheet, preventing jarring "pop out" effect
+        if !initialSelectedIcon.isEmpty && !popularEmojis.contains(initialSelectedIcon) {
+            result.append(initialSelectedIcon)
         }
         
         // Then, add the initial selected emoji if it exists in popularEmojis

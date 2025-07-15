@@ -123,6 +123,7 @@ struct ContentView: View {
         withAnimation {
             let newHabit = Habit(name: name, habitDescription: "")
             newHabit.frequency = frequency
+            newHabit.updateIntervalForFrequency()
             modelContext.insert(newHabit)
             
             // Schedule notification for the new habit
@@ -313,6 +314,7 @@ struct HabitDetailView: View {
                                 isSelected: habit.frequency == frequency
                             ) {
                                 habit.frequency = frequency
+                                habit.updateIntervalForFrequency()
                             }
                             .frame(maxWidth: .infinity)
                         }

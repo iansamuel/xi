@@ -23,6 +23,10 @@ final class Habit {
     var frequency: String // Store selected frequency (Daily, Weekly, Monthly, Custom)
     
     // Spaced repetition parameters
+    var consecutiveSuccesses: Int // Track consecutive successes for interval progression
+    var currentIntervalMultiplier: Int // Current interval multiplier (1 = base frequency, 2 = double, etc.)
+    
+    // Legacy spaced repetition parameters (kept for compatibility)
     var easeFactor: Double // How much to multiply interval on success
     var minimumInterval: TimeInterval // Minimum time between notifications
     var maximumInterval: TimeInterval // Maximum time between notifications
@@ -35,8 +39,8 @@ final class Habit {
         self.name = name
         self.habitDescription = habitDescription
         self.createdAt = Date()
-        self.currentInterval = 3600 // Start with 1 hour
-        self.nextNotificationDate = Date().addingTimeInterval(3600)
+        self.currentInterval = 24 * 60 * 60 // Start with 1 day (will be updated based on frequency)
+        self.nextNotificationDate = Date().addingTimeInterval(24 * 60 * 60)
         self.totalAttempts = 0
         self.successfulAttempts = 0
         self.lastCheckedAt = nil
@@ -44,7 +48,11 @@ final class Habit {
         self.selectedIcon = "⭐" // Default star emoji
         self.frequency = "Daily" // Default frequency
         
-        // Default spaced repetition settings
+        // New frequency-based spaced repetition
+        self.consecutiveSuccesses = 0
+        self.currentIntervalMultiplier = 1 // Start with base frequency
+        
+        // Default spaced repetition settings (legacy)
         self.easeFactor = 1.5 // Increase interval by 50% on success
         self.minimumInterval = 1800 // 30 minutes minimum
         self.maximumInterval = 86400 * 7 // 1 week maximum
@@ -88,11 +96,30 @@ final class Habit {
         return events.sorted { $0.timestamp > $1.timestamp }
     }
     
+    // MARK: - Frequency-Based Interval Helpers
+    
+    private var baseInterval: TimeInterval {
+        switch frequency {
+        case "Daily":
+            return 24 * 60 * 60 // 1 day in seconds
+        case "Weekly":
+            return 7 * 24 * 60 * 60 // 1 week in seconds
+        case "Monthly":
+            return 30 * 24 * 60 * 60 // 1 month in seconds (approximation)
+        default:
+            return 24 * 60 * 60 // Default to daily
+        }
+    }
+    
+    private var currentFrequencyInterval: TimeInterval {
+        return baseInterval * TimeInterval(currentIntervalMultiplier)
+    }
+    
     // MARK: - Spaced Repetition Methods
     
     func recordSuccess(context: ModelContext) {
         // Log the success event
-        let event = HabitEvent(eventType: .responseSuccess, habit: self, intervalUsed: currentInterval)
+        let event = HabitEvent(eventType: .responseSuccess, habit: self, intervalUsed: currentFrequencyInterval)
         context.insert(event)
         
         // Update legacy counters for compatibility
@@ -100,48 +127,74 @@ final class Habit {
         successfulAttempts += 1
         lastCheckedAt = Date()
         
-        // Increase interval on success (spaced repetition)
-        currentInterval = min(currentInterval * easeFactor, maximumInterval)
+        // New frequency-based spaced repetition logic
+        consecutiveSuccesses += 1
+        
+        // If 3 consecutive successes, increase interval multiplier
+        if consecutiveSuccesses >= 3 {
+            currentIntervalMultiplier += 1
+            consecutiveSuccesses = 0 // Reset counter
+            print("✅ Habit \(name) interval increased to \(currentIntervalMultiplier)x \(frequency.lowercased())")
+        }
+        
+        // Update current interval to use frequency-based system
+        currentInterval = currentFrequencyInterval
         scheduleNextNotification()
     }
     
     func recordFailure(context: ModelContext) {
         // Log the failure event
-        let event = HabitEvent(eventType: .responseFailure, habit: self, intervalUsed: currentInterval)
+        let event = HabitEvent(eventType: .responseFailure, habit: self, intervalUsed: currentFrequencyInterval)
         context.insert(event)
         
         // Update legacy counters for compatibility
         totalAttempts += 1
         lastCheckedAt = Date()
         
-        // Decrease interval on failure (more frequent reminders)
-        currentInterval = max(currentInterval / 2.0, minimumInterval)
+        // New frequency-based spaced repetition logic
+        // Reset to minimum interval on any failure
+        consecutiveSuccesses = 0
+        currentIntervalMultiplier = 1
+        
+        print("❌ Habit \(name) interval reset to 1x \(frequency.lowercased()) due to failure")
+        
+        // Update current interval to use frequency-based system
+        currentInterval = currentFrequencyInterval
         scheduleNextNotification()
     }
     
     func recordLater(context: ModelContext) {
         // Log the later event
-        let event = HabitEvent(eventType: .responseLater, habit: self, intervalUsed: currentInterval)
+        let event = HabitEvent(eventType: .responseLater, habit: self, intervalUsed: currentFrequencyInterval)
         context.insert(event)
         
-        // Don't count as attempt, just reschedule sooner
-        currentInterval = max(currentInterval / 3.0, minimumInterval)
+        // Don't count as attempt or affect consecutive successes
+        // Just reschedule sooner (1/3 of current interval, minimum of base frequency)
+        currentInterval = max(currentFrequencyInterval / 3.0, baseInterval)
         scheduleNextNotification()
+        
+        print("⏰ Habit \(name) rescheduled sooner, keeping current interval multiplier (\(currentIntervalMultiplier)x)")
     }
     
     func logReminderSent(context: ModelContext) {
         // Log when a reminder is sent
-        let event = HabitEvent(eventType: .reminderSent, habit: self, intervalUsed: currentInterval)
+        let event = HabitEvent(eventType: .reminderSent, habit: self, intervalUsed: currentFrequencyInterval)
         context.insert(event)
     }
     
     func logOverduePrompt(context: ModelContext) {
         // Log when an overdue prompt is shown
-        let event = HabitEvent(eventType: .overduePrompt, habit: self, intervalUsed: currentInterval)
+        let event = HabitEvent(eventType: .overduePrompt, habit: self, intervalUsed: currentFrequencyInterval)
         context.insert(event)
     }
     
     private func scheduleNextNotification() {
         nextNotificationDate = Date().addingTimeInterval(currentInterval)
+    }
+    
+    // Call this when frequency changes to update intervals
+    func updateIntervalForFrequency() {
+        currentInterval = currentFrequencyInterval
+        scheduleNextNotification()
     }
 }

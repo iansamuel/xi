@@ -181,7 +181,7 @@ struct HabitCardView: View {
             .padding(.bottom, 8)
             .padding(.top, 8)
         }
-        .background(Color("CardBackgroundColor").opacity(0.05))
+        .background(Color("CardBackgroundColor").opacity(0.2))
         .cornerRadius(12)
     }
     

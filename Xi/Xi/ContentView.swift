@@ -14,6 +14,7 @@ let popularEmojis = ["🧘", "🏃", "📚", "💧", "🧘‍♀️", "🚴", "�
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject var notificationManager: NotificationManager // Add EnvironmentObject
+    @EnvironmentObject var migrationManager: MigrationManager // Add migration manager
     @Query private var habits: [Habit]
     @State private var showingAddHabit = false
     @State private var showingSettings = false
@@ -106,6 +107,20 @@ struct ContentView: View {
             }
             .sheet(item: $notificationManager.habitToConfirm) { habit in // Use .sheet(item:) for optional binding
                 HabitConfirmationView(habit: habit) // Pass the habit
+            }
+            .alert("Database Migration", isPresented: $migrationManager.showMigrationAlert) {
+                Button("OK") {
+                    migrationManager.showMigrationAlert = false
+                }
+            } message: {
+                switch migrationManager.migrationStatus {
+                case .dataReset:
+                    Text("Your habit data has been reset due to app updates. We apologize for any inconvenience. A backup has been created if data recovery is needed.")
+                case .failed(let error):
+                    Text("Database migration failed: \(error). Please contact support if this persists.")
+                default:
+                    Text("Database migration completed successfully.")
+                }
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())

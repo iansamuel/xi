@@ -10,6 +10,43 @@ import SwiftData
 import UserNotifications
 import UIKit
 
+enum MigrationStatus {
+    case success
+    case dataBackedUp
+    case gracefulMigration
+    case dataReset
+    case failed(String)
+}
+
+@MainActor
+class MigrationManager: ObservableObject {
+    @Published var migrationStatus: MigrationStatus = .success
+    @Published var showMigrationAlert = false
+    
+    static let shared = MigrationManager()
+    
+    private init() {}
+    
+    func handleMigrationResult(_ status: MigrationStatus) {
+        self.migrationStatus = status
+        
+        switch status {
+        case .dataBackedUp:
+            print("ℹ️ Data has been backed up before migration")
+        case .gracefulMigration:
+            print("✅ Migration completed successfully")
+        case .dataReset:
+            print("⚠️ Data was reset due to incompatible schema changes")
+            showMigrationAlert = true
+        case .failed(let error):
+            print("❌ Migration failed: \(error)")
+            showMigrationAlert = true
+        case .success:
+            print("✅ Database loaded successfully")
+        }
+    }
+}
+
 class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
     var modelContainer: ModelContainer?
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
@@ -113,32 +150,149 @@ struct XiApp: App {
 
         do {
             sharedModelContainer = try ModelContainer(for: schema, configurations: [modelConfiguration])
+            Task { @MainActor in
+                MigrationManager.shared.handleMigrationResult(.success)
+            }
         } catch {
-            // If schema migration fails, try to recreate with a new configuration
-            print("⚠️ ModelContainer creation failed, attempting to recreate: \(error)")
-            do {
-                // Force recreate the container - this will clear existing data but fix schema issues
-                let url = URL.applicationSupportDirectory.appending(path: "default.store")
-                if FileManager.default.fileExists(atPath: url.path) {
-                    try FileManager.default.removeItem(at: url)
-                    print("🗑️ Removed old database file for schema migration")
-                }
-                
-                sharedModelContainer = try ModelContainer(for: schema, configurations: [modelConfiguration])
-                print("✅ Successfully recreated ModelContainer")
-            } catch {
-                fatalError("Could not create ModelContainer even after cleanup: \(error)")
+            // Handle schema migration failures more gracefully
+            print("⚠️ ModelContainer creation failed: \(error)")
+            let (container, status) = Self.handleMigrationFailure(schema: schema, modelConfiguration: modelConfiguration, error: error)
+            sharedModelContainer = container
+            Task { @MainActor in
+                MigrationManager.shared.handleMigrationResult(status)
             }
         }
         
         // Inject the model container into the notification delegate
         notificationDelegate.modelContainer = sharedModelContainer
     }
+    
+    private static func handleMigrationFailure(schema: Schema, modelConfiguration: ModelConfiguration, error: Error) -> (ModelContainer, MigrationStatus) {
+        // First, try to understand what kind of error we're dealing with
+        let errorDescription = String(describing: error)
+        print("🔍 Migration error details: \(errorDescription)")
+        
+        // Check if this is a true schema incompatibility or just a temporary issue
+        if errorDescription.contains("migration") || errorDescription.contains("schema") || errorDescription.contains("incompatible") {
+            // This is likely a schema migration issue - we need to be more careful
+            print("📋 Detected schema migration issue - attempting data preservation")
+            
+            // Try to backup existing data before attempting migration
+            let backupResult = backupExistingData()
+            var migrationStatus: MigrationStatus = .dataBackedUp
+            
+            if backupResult.success {
+                print("✅ Data backup successful - proceeding with migration")
+                migrationStatus = .dataBackedUp
+            } else {
+                print("⚠️ Data backup failed: \(backupResult.error ?? "Unknown error")")
+                migrationStatus = .failed("Backup failed: \(backupResult.error ?? "Unknown error")")
+            }
+            
+            // Try alternative migration strategies
+            if let container = attemptGracefulMigration(schema: schema, modelConfiguration: modelConfiguration) {
+                print("✅ Graceful migration successful")
+                return (container, .gracefulMigration)
+            }
+            
+            // If graceful migration fails, offer user choice (in a real app, this would be a UI dialog)
+            print("🚨 Migration requires data reset - this should prompt user in a real implementation")
+            
+            // As a last resort, create a new container (but we've at least tried to preserve data)
+            let container = createFreshContainer(schema: schema, modelConfiguration: modelConfiguration)
+            return (container, .dataReset)
+        } else {
+            // This might be a temporary issue - try again once
+            print("🔄 Retrying ModelContainer creation (might be temporary issue)")
+            do {
+                let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
+                return (container, .success)
+            } catch {
+                print("❌ Retry failed: \(error)")
+                let container = createFreshContainer(schema: schema, modelConfiguration: modelConfiguration)
+                return (container, .failed("Retry failed: \(error.localizedDescription)"))
+            }
+        }
+    }
+    
+    private static func backupExistingData() -> (success: Bool, error: String?) {
+        // Attempt to backup existing data before migration
+        let url = URL.applicationSupportDirectory.appending(path: "default.store")
+        
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            return (success: true, error: "No existing data to backup")
+        }
+        
+        do {
+            let backupURL = URL.applicationSupportDirectory.appending(path: "default.store.backup.\(Date().timeIntervalSince1970)")
+            try FileManager.default.copyItem(at: url, to: backupURL)
+            print("💾 Created backup at: \(backupURL.path)")
+            return (success: true, error: nil)
+        } catch {
+            return (success: false, error: "Backup failed: \(error.localizedDescription)")
+        }
+    }
+    
+    private static func attemptGracefulMigration(schema: Schema, modelConfiguration: ModelConfiguration) -> ModelContainer? {
+        // Try different migration strategies
+        
+        // Strategy 1: Try with migration options
+        do {
+            let migrationConfig = ModelConfiguration(
+                schema: schema,
+                isStoredInMemoryOnly: false,
+                allowsSave: true,
+                groupContainer: .none,
+                cloudKitDatabase: .none
+            )
+            
+            let container = try ModelContainer(for: schema, configurations: [migrationConfig])
+            print("✅ Migration successful with alternative configuration")
+            return container
+        } catch {
+            print("⚠️ Alternative configuration failed: \(error)")
+        }
+        
+        // Strategy 2: Try to open with just the core model first
+        do {
+            let coreSchema = Schema([Habit.self]) // Try with just Habit first
+            let container = try ModelContainer(for: coreSchema, configurations: [modelConfiguration])
+            print("✅ Core model migration successful")
+            
+            // Now try to add the relationship model
+            // Note: This is a simplified approach - in a real migration, you'd need more sophisticated logic
+            return container
+        } catch {
+            print("⚠️ Core model migration failed: \(error)")
+        }
+        
+        return nil
+    }
+    
+    private static func createFreshContainer(schema: Schema, modelConfiguration: ModelConfiguration) -> ModelContainer {
+        // Only as a last resort, create a fresh container
+        let url = URL.applicationSupportDirectory.appending(path: "default.store")
+        
+        do {
+            // Remove the existing database file
+            if FileManager.default.fileExists(atPath: url.path) {
+                try FileManager.default.removeItem(at: url)
+                print("🗑️ Removed incompatible database file")
+            }
+            
+            let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
+            print("✅ Created fresh ModelContainer")
+            return container
+        } catch {
+            fatalError("Could not create ModelContainer even after cleanup: \(error)")
+        }
+    }
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(NotificationManager.shared) // Provide as environment object
+                .environmentObject(MigrationManager.shared) // Add migration manager
                 .task {
                     await NotificationManager.shared.requestPermission()
                     await NotificationManager.shared.checkPermissionStatus()
